@@ -1,14 +1,11 @@
 from typing import Tuple, TypeVar, Any
 
-import numpy as np
 from numba import prange
 from numba import njit as _njit
 
 from .autodiff import Context
 from .tensor import Tensor
 from .tensor_data import (
-    MAX_DIMS,
-    Index,
     Shape,
     Strides,
     Storage,
@@ -22,6 +19,7 @@ Fn = TypeVar("Fn")
 
 
 def njit(fn: Fn, **kwargs: Any) -> Fn:
+    """Decorator for JIT compiling functions with NUMBA."""
     return _njit(inline="always", **kwargs)(fn)  # type: ignore
 
 
@@ -93,8 +91,9 @@ def _tensor_conv1d(
     for b in prange(batch_):
         for oc in prange(out_channels_):
             for ow in prange(out_width):
-
-                out_position = b * out_strides[0] + oc * out_strides[1] + ow * out_strides[2]
+                out_position = (
+                    b * out_strides[0] + oc * out_strides[1] + ow * out_strides[2]
+                )
                 accum = 0.0
 
                 for ic in range(in_channels_):
@@ -103,7 +102,7 @@ def _tensor_conv1d(
                             input_width = ow - kw_
                         else:
                             input_width = ow + kw_
-                        
+
                         if input_width < 0 or input_width >= width:
                             continue
 
@@ -112,6 +111,7 @@ def _tensor_conv1d(
                         accum += input[in_position] * weight[weight_position]
 
                 out[out_position] = accum
+
 
 tensor_conv1d = njit(_tensor_conv1d, parallel=True)
 
@@ -146,6 +146,7 @@ class Conv1dFun(Function):
 
     @staticmethod
     def backward(ctx: Context, grad_output: Tensor) -> Tuple[Tensor, Tensor]:
+        """Backwards for 1d convolution"""
         input, weight = ctx.saved_values
         batch, in_channels, w = input.shape
         out_channels, in_channels, kw = weight.shape
@@ -242,8 +243,12 @@ def _tensor_conv2d(
         for oc in prange(out_channels_):
             for h in prange(out_shape[2]):
                 for w in prange(out_shape[3]):
-
-                    out_position = b * out_strides[0] + oc * out_strides[1] + h * out_strides[2] + w * out_strides[3]
+                    out_position = (
+                        b * out_strides[0]
+                        + oc * out_strides[1]
+                        + h * out_strides[2]
+                        + w * out_strides[3]
+                    )
                     accum = 0.0
 
                     for ic in range(in_channels_):
@@ -255,18 +260,28 @@ def _tensor_conv2d(
                                 else:
                                     input_height = h + kh_
                                     input_width = w + kw_
-                                
-                                if input_width < 0 or input_width >= width or input_height < 0 or input_height >= height:
+
+                                if (
+                                    input_width < 0
+                                    or input_width >= width
+                                    or input_height < 0
+                                    or input_height >= height
+                                ):
                                     continue
 
-                                in_position = b * s10 + ic * s11 + input_height * s12 + input_width * s13
-                                weight_position = oc * s20 + ic * s21 + kh_ * s22 + kw_ * s23
+                                in_position = (
+                                    b * s10
+                                    + ic * s11
+                                    + input_height * s12
+                                    + input_width * s13
+                                )
+                                weight_position = (
+                                    oc * s20 + ic * s21 + kh_ * s22 + kw_ * s23
+                                )
 
                                 accum += input[in_position] * weight[weight_position]
 
                     out[out_position] = accum
-
-
 
 
 tensor_conv2d = njit(_tensor_conv2d, parallel=True, fastmath=True)
@@ -300,6 +315,7 @@ class Conv2dFun(Function):
 
     @staticmethod
     def backward(ctx: Context, grad_output: Tensor) -> Tuple[Tensor, Tensor]:
+        """Backwards for 2d Convolution"""
         input, weight = ctx.saved_values
         batch, in_channels, h, w = input.shape
         out_channels, in_channels, kh, kw = weight.shape

@@ -169,23 +169,23 @@ def tensor_map(
         in_shape: Shape,
         in_strides: Strides,
     ) -> None:
-        if (len(out_strides) != len(in_strides)
+        if (
+            len(out_strides) != len(in_strides)
             or (out_strides != in_strides).any()
             or (out_shape != in_shape).any()
-            ):
-                for i in prange(len(out)):
-                    out_index: Index = np.empty(MAX_DIMS, dtype=np.int32)
-                    in_index: Index = np.empty(MAX_DIMS, dtype=np.int32)
+        ):
+            for i in prange(len(out)):
+                out_index: Index = np.empty(MAX_DIMS, dtype=np.int32)
+                in_index: Index = np.empty(MAX_DIMS, dtype=np.int32)
 
-                    to_index(i, out_shape, out_index)
-                    broadcast_index(out_index, out_shape, in_shape, in_index)
-                    o = index_to_position(out_index, out_strides)
-                    j = index_to_position(in_index, in_strides)
-                    out[o] = fn(in_storage[j])
+                to_index(i, out_shape, out_index)
+                broadcast_index(out_index, out_shape, in_shape, in_index)
+                o = index_to_position(out_index, out_strides)
+                j = index_to_position(in_index, in_strides)
+                out[o] = fn(in_storage[j])
         else:
             for i in prange(len(out)):
                 out[i] = fn(in_storage[i])
-
 
     return njit(_map, parallel=True)  # type: ignore
 
@@ -224,12 +224,11 @@ def tensor_zip(
         b_shape: Shape,
         b_strides: Strides,
     ) -> None:
-        
-        if(
+        if (
             len(out_strides) != len(a_strides)
-            or len(out_strides)!=len(b_strides)
+            or len(out_strides) != len(b_strides)
             or (out_strides != a_strides).any()
-            or (out_strides !=b_strides).any()
+            or (out_strides != b_strides).any()
             or (out_shape != a_shape).any()
             or (out_shape != b_shape).any()
         ):
@@ -244,7 +243,7 @@ def tensor_zip(
                 broadcast_index(out_index, out_shape, b_shape, b_index)
                 k = index_to_position(b_index, b_strides)
                 out[o] = fn(a_storage[j], b_storage[k])
-        
+
         else:
             for i in prange(len(out)):
                 out[i] = fn(a_storage[i], b_storage[i])

@@ -42,7 +42,7 @@ class Conv2d(minitorch.Module):
 
     def forward(self, input):
         return minitorch.conv2d(input, self.weights.value) + self.bias.value
-          
+
 
 
 class Network(minitorch.Module):
