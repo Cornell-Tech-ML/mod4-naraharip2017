@@ -273,7 +273,7 @@ def encode_sentiment_data(dataset, pretrained_embeddings, N_train, N_val=0):
 if __name__ == "__main__":
     train_size = 450
     validation_size = 100
-    learning_rate = 0.01
+    learning_rate = 0.05
     max_epochs = 250
 
     (X_train, y_train), (X_val, y_val) = encode_sentiment_data(
