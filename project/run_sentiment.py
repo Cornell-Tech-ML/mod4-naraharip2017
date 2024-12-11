@@ -85,7 +85,9 @@ class CNNSentimentKim(minitorch.Module):
         x = self.linear.forward(x)
         if self.training:
             x = minitorch.dropout(x, self.dropout)
-        return x.sigmoid()
+        x = x.sigmoid()
+        return x.view(x.shape[0])
+
 
 
 
@@ -273,7 +275,7 @@ def encode_sentiment_data(dataset, pretrained_embeddings, N_train, N_val=0):
 if __name__ == "__main__":
     train_size = 450
     validation_size = 100
-    learning_rate = 0.05
+    learning_rate = 0.01
     max_epochs = 250
 
     (X_train, y_train), (X_val, y_val) = encode_sentiment_data(
