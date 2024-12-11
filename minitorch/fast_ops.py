@@ -344,21 +344,27 @@ def _tensor_matrix_multiply(
     a_batch_stride = a_strides[0] if a_shape[0] > 1 else 0
     b_batch_stride = b_strides[0] if b_shape[0] > 1 else 0
 
+    num_batches = a_shape[0] if a_batch_stride > 0 else 1
+    num_rows_a = a_shape[-2]
+    num_cols_a_rows_b = a_shape[-1]
+    num_cols_b = b_shape[-1]
 
-    for i1 in prange(out_shape[0]):
-        for i2 in prange(out_shape[1]):
-            for i3 in prange(out_shape[2]):
-                a_inner = i1 * a_batch_stride + i2 * a_strides[1]
-                b_inner = i1 * b_batch_stride + i3 * b_strides[2]
-                acc = 0.0
-                for _ in range(a_shape[2]):
-                    acc += a_storage[a_inner] * b_storage[b_inner]
-                    a_inner += a_strides[2]
-                    b_inner += b_strides[1]
-                out_position = (
-                    i1 + out_strides[0] + i2 * out_strides[1] + i3 * out_strides[2]
+    for batch in prange(num_batches):
+        a_start = batch * a_batch_stride if a_batch_stride > 0 else 0
+        b_start = batch * b_batch_stride if b_batch_stride > 0 else 0
+
+        for i in range(num_rows_a):
+            for j in range(num_cols_b):
+                dot_product = 0.0
+                for k in range(num_cols_a_rows_b):
+                    a_pos = a_start + i * a_strides[-2] + k * a_strides[-1]
+                    b_pos = b_start + k * b_strides[-2] + j * b_strides[-1]
+                    dot_product += a_storage[a_pos] * b_storage[b_pos]
+
+                out_pos = (
+                    batch * out_strides[-3] + i * out_strides[-2] + j * out_strides[-1]
                 )
-                out[out_position] = acc
+                out[out_pos] = dot_product
 
 
 tensor_matrix_multiply = njit(_tensor_matrix_multiply, parallel=True)
